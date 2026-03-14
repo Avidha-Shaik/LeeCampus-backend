@@ -19,9 +19,10 @@ import java.util.Map;
 @Service
 public class LeetcodeStatsService {
 
+    private static final String LEETCODE_API = "https://alfa-leetcode-api.onrender.com";
+
     private final LeetcodeStatsRepository statsRepository;
     private final StudentRepository studentRepository;
-
     private final RestTemplate restTemplate;
     private final ObjectMapper objectMapper;
 
@@ -44,7 +45,7 @@ public class LeetcodeStatsService {
                 .orElseThrow(() -> new RuntimeException("Student not found"));
 
         String username = student.getLeetcodeUsername();
-        String url = "https://alfa-leetcode-api.onrender.com/" + username + "/profile";
+        String url = LEETCODE_API + "/" + username + "/profile";
 
         try {
 
@@ -59,22 +60,15 @@ public class LeetcodeStatsService {
                             new TypeReference<Map<String, Object>>() {}
                     );
 
-            // ❌ If GraphQL error exists → invalid user
             if (response.containsKey("errors")) {
                 throw new RuntimeException("Leetcode user does not exist");
             }
 
-            // 🔥 Extract stats directly (top-level keys)
-            int totalSolved = getInt(response.get("totalSolved"));
-            int easySolved = getInt(response.get("easySolved"));
+            int totalSolved  = getInt(response.get("totalSolved"));
+            int easySolved   = getInt(response.get("easySolved"));
             int mediumSolved = getInt(response.get("mediumSolved"));
-            int hardSolved = getInt(response.get("hardSolved"));
-            int ranking = getInt(response.get("ranking"));
-
-            // Safety check
-            if (totalSolved == 0 && ranking == 0) {
-                throw new RuntimeException("Invalid Leetcode user");
-            }
+            int hardSolved   = getInt(response.get("hardSolved"));
+            int ranking      = getInt(response.get("ranking"));
 
             LeetcodeStats stats = statsRepository
                     .findByStudent_Id(studentId)
@@ -95,6 +89,7 @@ public class LeetcodeStatsService {
             throw new RuntimeException("Leetcode fetch failed: " + e.getMessage());
         }
     }
+
     // ==============================
     // GET STATS
     // ==============================
@@ -108,39 +103,34 @@ public class LeetcodeStatsService {
         return mapToDTO(stats);
     }
 
-
     // ==============================
     // VALIDATE USERNAME
     // ==============================
- // ==============================
- // VALIDATE USERNAME
- // ==============================
- public boolean validateLeetcodeUsername(String username) {
-     try {
-         String url = "http://localhost:3000/" + username + "/profile";
-         String json = restTemplate.getForObject(url, String.class);
+    public boolean validateLeetcodeUsername(String username) {
+        try {
+            String url = LEETCODE_API + "/" + username + "/profile";
+            String json = restTemplate.getForObject(url, String.class);
 
-         if (json == null) return false;
+            if (json == null) return false;
 
-         Map<String, Object> response =
-                 objectMapper.readValue(
-                         json,
-                         new TypeReference<Map<String, Object>>() {}
-                 );
+            Map<String, Object> response =
+                    objectMapper.readValue(
+                            json,
+                            new TypeReference<Map<String, Object>>() {}
+                    );
 
-         // If errors key present → invalid user
-         if (response.containsKey("errors")) return false;
+            if (response.containsKey("errors")) return false;
 
-         // 🔥 Stats are top-level, not nested under "data"
-         Object totalSolved      = response.get("totalSolved");
-         Object matchedUserStats = response.get("matchedUserStats");
+            Object totalSolved = response.get("totalSolved");
 
-         return totalSolved != null && matchedUserStats != null;
+            return totalSolved != null;
 
-     } catch (Exception e) {
-         return false;
-     }
- }    // ==============================
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
+    // ==============================
     // SCHEDULER (Every 10 mins)
     // ==============================
     @Scheduled(fixedRate = 6000000)
@@ -183,7 +173,6 @@ public class LeetcodeStatsService {
 
         return dto;
     }
-    
 
     // ==============================
     // SAFE INTEGER CONVERSION
