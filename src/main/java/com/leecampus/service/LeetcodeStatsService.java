@@ -44,7 +44,7 @@ public class LeetcodeStatsService {
                 .orElseThrow(() -> new RuntimeException("Student not found"));
 
         String username = student.getLeetcodeUsername();
-        String url = "http://localhost:3000/" + username + "/profile";
+        String url = "https://alfa-leetcode-api.onrender.com/" + username + "/profile";
 
         try {
 
