@@ -64,9 +64,11 @@ public class StudentService {
 
         Student saved = studentRepository.save(student);
 
-        // Fetch stats after saving
-        leetcodeStatsService.fetchAndStoreStats(saved.getId());
-
+        try {
+            leetcodeStatsService.fetchAndStoreStats(saved.getId());
+        } catch (Exception e) {
+            System.out.println("LeetCode stats fetch failed: " + e.getMessage());
+        }
         return mapToResponseDTO(saved);
     }
 
