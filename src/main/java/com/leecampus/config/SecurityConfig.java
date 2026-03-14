@@ -65,15 +65,16 @@ public class SecurityConfig {
 
                 // ── Public endpoints ──
                 .requestMatchers(
-                    "/leecampus/login",
-                    "/leecampus/registerStudent",
-                    "/leecampus/admin/login",
-                    "/leecampus/faculty/login",
-                    "/leecampus/dashboard/**",
-                    "/leecampus/stats/**",
-                    "/leecampus/leetcode-stats/**",
-                    "/error"
-                ).permitAll()
+                	    "/leecampus/login",
+                	    "/leecampus/registerStudent",
+                	    "/leecampus/registerStudent/**",
+                	    "/leecampus/admin/login",
+                	    "/leecampus/faculty/login",
+                	    "/leecampus/dashboard/**",
+                	    "/leecampus/stats/**",
+                	    "/leecampus/leetcode-stats/**",
+                	    "/error"
+                	).permitAll()
 
                 // ── Analytics — ADMIN or FACULTY ──
                 .requestMatchers("/leecampus/admin/analytics")
