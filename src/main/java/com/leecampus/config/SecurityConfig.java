@@ -26,80 +26,98 @@ public class SecurityConfig {
 
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
+
         CorsConfiguration config = new CorsConfiguration();
-        config.setAllowedOrigins(List.of("https://leecampus-frontend3.onrender.com"));
+
+        config.setAllowedOrigins(List.of(
+                "https://leecampus-frontend3.onrender.com",
+                "http://localhost:5173"
+        ));
+
         config.setAllowedHeaders(List.of("*"));
         config.setAllowedMethods(List.of("GET","POST","PUT","DELETE","OPTIONS","PATCH"));
         config.setAllowCredentials(false);
         config.setMaxAge(3600L);
+
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", config);
+
         return source;
     }
 
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
+
         http
             .cors(cors -> cors.configurationSource(corsConfigurationSource()))
             .csrf(csrf -> csrf.disable())
-            .sessionManagement(s ->
-                s.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-            .exceptionHandling(ex -> ex
-                .authenticationEntryPoint((req, res, e) -> {
-                    res.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
-                    res.setContentType("application/json");
-                    res.getWriter().write("{\"error\":\"Unauthorized\"}");
-                })
-                .accessDeniedHandler((req, res, e) -> {
-                    res.setStatus(HttpServletResponse.SC_FORBIDDEN);
-                    res.setContentType("application/json");
-                    res.getWriter().write("{\"error\":\"Forbidden\"}");
-                })
+
+            .sessionManagement(session ->
+                    session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)
             )
+
+            .exceptionHandling(ex -> ex
+                    .authenticationEntryPoint((req, res, e) -> {
+                        res.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+                        res.setContentType("application/json");
+                        res.getWriter().write("{\"error\":\"Unauthorized\"}");
+                    })
+                    .accessDeniedHandler((req, res, e) -> {
+                        res.setStatus(HttpServletResponse.SC_FORBIDDEN);
+                        res.setContentType("application/json");
+                        res.getWriter().write("{\"error\":\"Forbidden\"}");
+                    })
+            )
+
             .authorizeHttpRequests(auth -> auth
 
-                // ── OPTIONS preflight ──
+                // Allow OPTIONS (CORS preflight)
                 .requestMatchers(
-                    org.springframework.http.HttpMethod.OPTIONS, "/**"
+                        org.springframework.http.HttpMethod.OPTIONS, "/**"
                 ).permitAll()
 
-                // ── Public endpoints ──
+                // Public endpoints
                 .requestMatchers(
-                	    "/leecampus/login",
-                	    "/leecampus/registerStudent",
-                	    "/leecampus/registerStudent/**",
-                	    "/leecampus/admin/login",
-                	    "/leecampus/faculty/login",
-                	    "/leecampus/dashboard/**",
-                	    "/leecampus/stats/**",
-                	    "/leecampus/leetcode-stats/**",
-                	    "/error"
-                	).permitAll()
+                        "/leecampus/login",
+                        "/leecampus/registerStudent",
+                        "/leecampus/registerStudent/**",
+                        "/leecampus/allStudents",
+                        "/leecampus/getStudent/**",
+                        "/leecampus/admin/login",
+                        "/leecampus/faculty/login",
+                        "/leecampus/dashboard/**",
+                        "/leecampus/stats/**",
+                        "/leecampus/leetcode-stats/**",
+                        "/error"
+                ).permitAll()
 
-                // ── Analytics — ADMIN or FACULTY ──
+                // Analytics
                 .requestMatchers("/leecampus/admin/analytics")
-                    .hasAnyRole("ADMIN", "FACULTY")
+                        .hasAnyRole("ADMIN", "FACULTY")
 
-                // ── Faculty register — ADMIN only ──
+                // Faculty register
                 .requestMatchers("/leecampus/faculty/register")
-                    .hasRole("ADMIN")
+                        .hasRole("ADMIN")
 
-                // ── Admin endpoints — ADMIN only ──
+                // Admin endpoints
                 .requestMatchers("/leecampus/admin/**")
-                    .hasRole("ADMIN")
+                        .hasRole("ADMIN")
 
-                // ── Faculty endpoints — FACULTY only ──
+                // Faculty endpoints
                 .requestMatchers("/leecampus/faculty/**")
-                    .hasRole("FACULTY")
+                        .hasRole("FACULTY")
 
-                // ── Everything else — any authenticated user ──
+                // All other APIs
                 .requestMatchers("/leecampus/**")
-                    .hasAnyRole("STUDENT", "ADMIN", "FACULTY")
+                        .hasAnyRole("STUDENT","ADMIN","FACULTY")
 
                 .anyRequest().authenticated()
             )
-            .addFilterBefore(jwtFilter,
-                UsernamePasswordAuthenticationFilter.class);
+
+            .addFilterBefore(
+                    jwtFilter,
+                    UsernamePasswordAuthenticationFilter.class
+            );
 
         return http.build();
     }
